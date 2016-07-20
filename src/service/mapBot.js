@@ -17,27 +17,29 @@ bot.getMe().then(me => {
   console.log(`I'm ${me.first_name}, my ID is ${me.id} and username is ${me.username}`);
 });
 
-bot.on('start', message => {
+bot.onText(/\/start/, message => {
   bot.sendMessage(message.chat.id, messages.START);
 });
 
-bot.on('help', message => {
+bot.onText(/\/help/, message => {
   bot.sendMessage(message.chat.id, messages.HELP);
 });
 
 
-bot.on('myLocation', message => {
-  bot.sendMessage(message.chat.id, messages.TODO);
+bot.on('location', message => {
+  bot.sendMessage(message.chat.id, message.location.longitude + ' ' + message.location.latitude);
 });
 
-bot.on('nearbyPokemon', (args, message) => {
-  bot.sendMessage(message.chat.id, args);
+bot.onText(/\/nearbyPokemon (.+)/, (message, match) => {
+  bot.sendMessage(message.chat.id, match[1]);
 });
 
 bot.on('message', message => {
-  bot.sendMessage(message.chat.id, messages.WRONG);
+  console.log(message);
+  if(message.entities || message.location)
+    return;
+  bot.sendMessage(message.chat.id, messages.HELP);
 });
-
 
 
 module.exports = bot;
