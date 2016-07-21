@@ -2,44 +2,94 @@
 
 const TelegramBot = require('node-telegram-bot-api');
 const messages = require('./../common/messages');
-const Pokeio = require('pokemon-go-node-api');
+const pokemonFinder = require('./pokemonFinder');
 
-let bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
-  polling: process.env.NODE_ENV !== `production`
-});
+class MapBot {
+  constructor(pokeIo) {
+    this.pokeIo = pokeIo;
 
-if (process.env.NODE_ENV === `production`)
-  bot.setWebHook(`https://pokemongomapbot.herokuapp.com/${bot.token}`);
-else
-  bot.setWebHook(``);
+    let bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
+      polling: process.env.NODE_ENV !== `production`
+    });
 
-bot.getMe().then(me => {
-  console.log(`I'm ${me.first_name}, my ID is ${me.id} and username is ${me.username}`);
-});
+    if (process.env.NODE_ENV === `production`)
+      bot.setWebHook(`https://pokemongomapbot.herokuapp.com/${bot.token}`);
+    else
+      bot.setWebHook(``);
 
-bot.onText(/\/start/, message => {
-  bot.sendMessage(message.chat.id, messages.START);
-});
+    bot.getMe().then(me => {
+      console.log(`I'm ${me.first_name}, my ID is ${me.id} and username is ${me.username}`);
+    });
 
-bot.onText(/\/help/, message => {
-  bot.sendMessage(message.chat.id, messages.HELP);
-});
+    bot.onText(/\/start/, message => {
+      bot.sendMessage(message.chat.id, messages.HELP);
+    });
 
+    bot.onText(/\/help/, message => {
+      bot.sendMessage(message.chat.id, messages.HELP);
+    });
 
-bot.on('location', message => {
-  bot.sendMessage(message.chat.id, message.location.longitude + ' ' + message.location.latitude);
-});
+    bot.on('location', message => {
+      pokemonWildSender(`${message.location.latitude}, ${message.location.longitude}`, message.chat.id);
+    });
 
-bot.onText(/\/nearbyPokemon (.+)/, (message, match) => {
-  bot.sendMessage(message.chat.id, match[1]);
-});
+    bot.onText(/\/nearpoke (.+)/, (message, match) => {
+      console.log(match[1]);
+      pokemonWildSender(match[1], message.chat.id);
+    });
 
-bot.on('message', message => {
-  console.log(message);
-  if(message.entities || message.location)
-    return;
-  bot.sendMessage(message.chat.id, messages.HELP);
-});
+    bot.onText(/\/nearpoke$/, (message) => {
+      bot.sendMessage(message.chat.id, messages.HELP);
+    });
 
+    bot.onText(/\/mayspawn (.+)/, (message, match) => {
+      pokemonNearbySender(match[1], message.chat.id);
+    });
 
-module.exports = bot;
+    bot.on('message', message => {
+      console.log(message);
+      if (message.entities || message.location)
+        return;
+      bot.sendMessage(message.chat.id, messages.HELP);
+    });
+
+    function pokemonWildSender(location, chatId) {
+      pokemonFinder.getWildPokemon(location, (err, list) => {
+        if (err) {
+          console.log(err);
+          bot.sendMessage(chatId, messages.ERROR);
+          return;
+        }
+        pokemonFinder.getWildString(list, (err, string) => {
+          if (err) {
+            console.log(err);
+            bot.sendMessage(chatId, messages.ERROR);
+            return;
+          }
+          bot.sendMessage(chatId, string);
+        });
+      });
+    }
+
+    function pokemonNearbySender(location, chatId) {
+      pokemonFinder.getNearbyPokemon(location, (err, list) => {
+        if (err) {
+          console.log(err);
+          bot.sendMessage(chatId, messages.ERROR);
+          return;
+        }
+        pokemonFinder.getNearbyString(list, (err, string) => {
+          if (err) {
+            console.log(err);
+            bot.sendMessage(chatId, messages.ERROR);
+            return;
+          }
+          bot.sendMessage(chatId, string);
+        });
+      });
+    }
+  }
+
+}
+
+module.exports = MapBot;

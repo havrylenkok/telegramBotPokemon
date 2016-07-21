@@ -3,6 +3,8 @@
 const request = require('request');
 const express = require('express');
 const bodyParser = require('body-parser');
+const MapBot = require('./service/mapBot');
+const pokeFinder = require('./service/pokemonFinder');
 let app = express();
 
 if (!process.env.TELEGRAM_BOT_TOKEN)
@@ -10,7 +12,13 @@ if (!process.env.TELEGRAM_BOT_TOKEN)
 if (!process.env.PORT)
   throw new Error(`You must provide PORT`);
 
-let bot = require('./service/mapBot');
+let bot;
+pokeFinder.initPokeIo((err, pokeIo) => {
+  if (err)
+    return err;
+  let mapBot = new MapBot(pokeIo);
+  bot = mapBot.bot;
+});
 
 app.use(bodyParser.json());
 app.get(`/`, (req, res) => {
