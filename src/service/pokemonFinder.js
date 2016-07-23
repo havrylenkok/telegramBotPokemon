@@ -68,6 +68,7 @@ function getPokemon(whatNeeded, locationName, callback) {
             break;
         }
       }
+      console.log(`Answer: ${pokemonList.length}`);
       return callback(null, pokemonList);
     });
   });

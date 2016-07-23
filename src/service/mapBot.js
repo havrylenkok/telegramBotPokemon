@@ -30,7 +30,7 @@ bot.on('location', message => {
 });
 
 bot.onText(/\/nearpoke (.+)/, (message, match) => {
-  console.log(match[1]);
+  console.log(`Looking for ${match[1]} via command`);
   pokemonWildSender(match[1], message.chat.id);
 });
 
