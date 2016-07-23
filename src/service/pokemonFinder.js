@@ -1,7 +1,11 @@
 'use strict';
 
-const Pokeio = require('pokemon-go-node-api');
+let Pokeio = require('pokemon-go-node-api');
 const messages = require('./../common/messages');
+
+let emptyListCounter = 0;
+let errorCounter = 0;
+let reinitProcess = false;
 
 function initPokeIo(callback) {
   let username = process.env.PGO_USERNAME || 'USER';
@@ -14,7 +18,9 @@ function initPokeIo(callback) {
   };
 
   Pokeio.init(username, password, location, provider, function (err) {
-    if (err) return callback(err);
+    if (err) {
+      return errorHandler(err, callback);
+    }
     return callback(null, Pokeio);
   });
 }
@@ -29,11 +35,13 @@ function getPokemon(whatNeeded, locationName, callback) {
 
   Pokeio.SetLocation(location, (err, coords) => {
     if (err) {
-      return callback(err);
+      return errorHandler(err, callback);
     }
     console.log(`Searching for location: ${coords.latitude}, ${coords.longitude}`);
     Pokeio.Heartbeat(function (err, hb) {
-      if (err) return callback(err);
+      if (err) {
+        return errorHandler(err, callback);
+      }
 
       for (let i = hb.cells.length - 1; i >= 0; i--) {
         switch (whatNeeded) {
@@ -76,6 +84,7 @@ function getNearbyPokemon(locationName, callback) {
 function getNearbyString(pokemonList, callback) {
   let pokemonString = `List of pokemon that may spawn near location:\n\n`;
   if (pokemonList.length === 0) {
+    incrementEmptyListCounter();
     pokemonString = messages.NO_POKEMON;
   } else {
     pokemonList.forEach(each => {
@@ -93,6 +102,7 @@ function getWildString(pokemonList, callback) {
   let googleMapsEndpoint = `https://www.google.com.ua/maps/dir/`;
   let pokemonString = `List of spawned pokemon:\n\n`;
   if (pokemonList.length === 0) {
+    incrementEmptyListCounter();
     pokemonString = messages.NO_POKEMON;
   } else {
     pokemonList.forEach(each => {
@@ -104,6 +114,39 @@ function getWildString(pokemonList, callback) {
     return callback(null, pokemonString)
   } else {
     return pokemonString;
+  }
+}
+
+function reInitPokeIo() {
+  console.log(`REINITTING POKEIO. Something probably is wrong`);
+  if (reinitProcess)
+    return;
+  reinitProcess = true;
+  setTimeout(() => {
+    Pokeio = new Pokeio.Pokeio();
+    initPokeIo((err, pokeIo) => {
+      if (err)
+        return err;
+      Pokeio = require('pokemon-go-node-api');
+    });
+    reinitProcess = false;
+  }, 2000);
+}
+
+function errorHandler(err, callback) {
+  errorCounter++;
+  if (errorCounter > 10) {
+    reInitPokeIo();
+    errorCounter = 0;
+  }
+  callback(err);
+}
+
+function incrementEmptyListCounter() {
+  emptyListCounter++;
+  if (emptyListCounter > 50) {
+    reInitPokeIo();
+    emptyListCounter = 0;
   }
 }
 
