@@ -137,15 +137,14 @@ function reInitPokeIo() {
 function errorHandler(err, callback) {
   errorCounter++;
   if (errorCounter > 10) {
-    reInitPokeIo();
-    errorCounter = 0;
+    throw 1;
   }
   callback(err);
 }
 
 function incrementEmptyListCounter() {
   emptyListCounter++;
-  if (emptyListCounter > 50) {
+  if (emptyListCounter > 2) {
     reInitPokeIo();
     emptyListCounter = 0;
   }
