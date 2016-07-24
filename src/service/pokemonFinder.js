@@ -107,7 +107,12 @@ function getWildString(pokemonList, callback) {
     pokemonString = messages.NO_POKEMON;
   } else {
     pokemonList.forEach(each => {
-      pokemonString += `${each.pokemon.name}. Despawns in ${each.timeLeft / 1000 } sec.\n`;
+      let timeLeftInSec = each.timeLeft / 1000;
+      let despawn = `Despawns in ${timeLeftInSec} sec.\n`;
+      if (timeLeftInSec < 0) {
+        despawn = `Pokemon will be spawned in a couple of minutes.`
+      }
+      pokemonString += `${each.pokemon.name}. ${despawn}`;
       pokemonString += `Google Maps: ${googleMapsEndpoint}${each.lat},${each.long}/${each.userLocation.latitude},${each.userLocation.longitude}\n`;
     });
   }
@@ -136,7 +141,7 @@ function reInitPokeIo() {
 
 function errorHandler(err, callback) {
   errorCounter++;
-  if (errorCounter > 10) {
+  if (errorCounter > 4) {
     throw 1;
   }
   callback(err);
